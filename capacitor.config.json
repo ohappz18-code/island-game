@@ -1,0 +1,8 @@
+{
+  "appId": "com.islandsurvival.game",
+  "appName": "เกาะร้าง",
+  "webDir": "www",
+  "backgroundColor": "#0b2a33",
+  "android": { "allowMixedContent": false },
+  "server": { "androidScheme": "https" }
+}
