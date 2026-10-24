@@ -576,6 +576,8 @@ const ptxt=(txt,c='#ffe08a',x,y)=>pt({txt,c:c||'#ffe08a',x:x==null?S.px+rf(-14,1
 function hurt(n,src){if(S.over||ADM.god)return;if(S.auto&&S.auto.k!=='animal')S.auto=null;if(S.tool.iarmor)n=Math.round(n*.55);else if(S.tool.armor)n=Math.round(n*.65);if(S.tool.amulet)n=Math.round(n*.75);n=Math.max(1,Math.round(n*DF().dmg));S.hp-=n;wear(S.tool.iarmor?'iarmor':S.tool.armor?'armor':null,Math.max(1,Math.round(n/4)));S.cause=src||S.cause;FX.hurt=.5;FX.flash=1;FX.shake=8;sfx('hurt');ptxt('−'+n,'#ff6b6b');try{ST.vib&&navigator.vibrate&&navigator.vibrate(50)}catch(e){}}
 function sick(p,why){if(Math.random()<p){S.sick=Math.max(S.sick,50);S.cause=why;toast('คุณรู้สึกไม่สบาย ท้องไส้ปั่นป่วน (ดื่มน้ำสะอาด/ใช้ยาช่วยได้)')}}
 /* ---------- helpers ---------- */
+function bldHit(x,y,r,skip){for(const b of O){if(b===skip||b.dead)continue;if(b.t==='hut'){if(x>b.x0-r-6&&x<b.x1+r+6&&y>b.y0-r-30&&y<b.y1+r+6)return true}else if(BLD[b.t]&&b.t!=='fence'&&Math.hypot(b.x-x,b.y-y)<(b.r||20)+6+r)return true}return false}
+function relocRes(o){const r=o.r||12;for(let i=0;i<60;i++){const a=Math.random()*6.283,d=70+Math.random()*(120+i*8),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(rin(x,y)>.85||blocked(x,y,r+6)||bldHit(x,y,r+8,o))continue;if(O.some(q=>q!==o&&q.r&&!q.dead&&Math.hypot(q.x-x,q.y-y)<q.r+r+4))continue;o.x=x;o.y=y;GVER++;return true}return false}
 function blocked(x,y,r,an){if(ADM.noclip&&r===10&&!an)return false;if(S&&S.boat&&r===10&&!an)return rin(x,y)<.9||x<40||y<40||x>WS-40||y>WS-40;if(rin(x,y)>(an?.955:.965))return true;if(inPond(x,y,r))return true;
  for(const o of O){if(o.r&&!o.dead&&Math.abs(o.x-x)<o.r+r&&Math.abs(o.y-y)<o.r+r&&Math.hypot(o.x-x,o.y-y)<o.r+r)return true}
  for(const w of WALLS){const nx=cl(x,w[0],w[2]),ny=cl(y,w[1],w[3]);if(Math.hypot(nx-x,ny-y)<r)return true}return false}
@@ -708,7 +710,7 @@ function update(dt){if(S.over||S.paused)return;if(ADM.god){S.hp=100;S.sick=0;S.p
  /* objects */
  const storm=S.wx==='storm',rain=S.wx!=='clear';
  for(const o of O){if(o.sh>0)o.sh-=dt;
-  if(o.rg>0){o.rg-=wdt;if(o.rg<=0){o.dead=false;o.hp=o.mx;o.stock=3}}
+  if(o.rg>0){o.rg-=wdt;if(o.rg<=0){if(o.r&&(o.t==='tree'||o.t==='rock'||o.t==='palm')&&bldHit(o.x,o.y,o.r,o)){if(!relocRes(o)){o.rg=DAY*.2;continue}}o.dead=false;o.hp=o.mx;o.stock=3}}
   if(o.t==='palm'&&!o.dead&&o.fruit<2){o.ft-=wdt;if(o.ft<=0){o.fruit++;o.ft=DAY*.6}}
   if(o.t==='fire'||o.t==='bonfire')o.fuel=1;
   if(o.t==='catcher'&&rain)o.water=Math.min(5,o.water+(storm?.08:.05)*dt);
@@ -1045,7 +1047,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  else if(b.id==='start'){lockP();$('intro').style.display='none';S.paused=false;sfx('night')}
  else if(b.id==='again'){init(LASTNG||undefined);S.paused=false;$('bRun').classList.remove('on');enterCh(CH[0],'')}});
 /* ---------- placement ---------- */
-let PL=null;const ROT=['chest','trap','dock','fence'];
+let PL=null;const ROT=Object.keys(BLD);
 function placeReason(k,x,y){
  if(k==='hut'){const yb=y,x0=x-105,x1=x+105,y0=yb-140;
   for(const [a,b] of [[x0,y0],[x1,y0],[x0,yb],[x1,yb]])if(rin(a,b)>.95)return 'ใกล้ทะเลเกินไป ขยับเข้าไปในเกาะ';
@@ -2482,7 +2484,7 @@ R3.endDC=function(){if(R3.cx0){cx=R3.cx0;R3.cx0=null}R3.dct.needsUpdate=true};
 R3.sync=function(t,dt){const fr=++R3.fr,rg=R3.range(),tx=R3.tx,tz=R3.tz,sc=R3.sc,mp=R3.mp;
  for(const o of O){const dx=o.x-tx,dz=o.y-tz;const inst0=mp.get(o);if(dx*dx+dz*dz>rg*rg){if(inst0&&inst0.visible)inst0.visible=false;continue}
   let inst=inst0;const sg=R3.sig(o);if(!inst||inst.userData.sig!==sg){if(inst){sc.remove(inst)}inst=R3.instOf(o);inst.userData.o=o;mp.set(o,inst);sc.add(inst)}
-  inst.visible=true;inst.userData.seen=fr;const y=o.t==='boat'||o.t==='flot'?-5:gY(o.x,o.y);inst.position.set(o.x,y,o.y);const s=o.sc||1;inst.scale.setScalar(o.t==='tree'||o.t==='palm'?s:1);inst.rotation.y=((o.rot||0)&3)*Math.PI/2;
+  inst.visible=true;inst.userData.seen=fr;const y=o.t==='boat'||o.t==='flot'?-5:gY(o.x,o.y);inst.position.set(o.x,y,o.y);const s=o.sc||1;inst.scale.setScalar(o.t==='tree'||o.t==='palm'?s:1);inst.rotation.y=o.t==='boat'&&S.boat?(R3.pYaw||0)-Math.PI/2:((o.rot||0)&3)*Math.PI/2;if(o.t==='boat'&&S.boat){inst.position.set(S.px,-5+Math.sin(R3.tNow*2)*1.2,S.py)}
   if(o.upT&&R3.upPop)R3.upPop(inst,o,t);const f=R3.AN[o.t];if(f)f(inst,o,t,dt);const wn=inst.userData.parts&&inst.userData.parts.wn;if(wn)wn.visible=(R3.dk||0)>.2}
  if((fr&127)===0){const set=new Set(O);for(const [o,inst] of mp)if(!set.has(o)){sc.remove(inst);mp.delete(o)}}
  /* bridges */
@@ -2596,8 +2598,8 @@ R3.ents=function(t,dt){const fr=R3.fr,rg=R3.range(),tx=R3.tx,tz=R3.tz,near=(x,y)
  if(S.dog&&near(S.dog.x,S.dog.y)){const d=S.dog;if(!R3.dogE){R3.dogE={g:mkDog()};R3.sc.add(R3.dogE.g)}const e=track(R3.EM,d,()=>R3.dogE.g,d.x,d.y,fr,dt,!!d.mv,0,-PI/2);const s=Math.sin(t*12)*(d.mv?.7:0);e.g.userData.legs.forEach((l,i)=>l.rotation.z=(i&1?-s:s));e.g.userData.tail.rotation.x=Math.sin(t*10)*.5;if(d.mv)e.g.position.y+=Math.abs(Math.sin(t*12))*1.1;if(!d.mv){let q=Math.atan2(S.px-d.x,S.py-d.y)-e.yaw;while(q>PI)q-=2*PI;while(q<-PI)q+=2*PI;e.yaw+=q*Math.min(1,dt*4);e.g.rotation.y=e.yaw-PI/2}}
  /* player */
  if(!R3.pE){R3.pE=mkPlayer();R3.sc.add(R3.pE)}const p=R3.pE;p.visible=true;p.position.set(S.px,R3.gY(S.px,S.py),S.py);
- if(!R3.pYaw)R3.pYaw=0;const ty=Math.atan2(S.fx||0,S.fy||1);let dd=ty-R3.pYaw;while(dd>PI)dd-=2*PI;while(dd<-PI)dd+=2*PI;R3.pYaw+=dd*Math.min(1,dt*12);p.rotation.y=S.sleep?0:R3.pYaw;
- const mv=S.mv>.1,u=p.userData;sleepPose(p,!!S.sleep);const sh=S.swing>0?Math.sin(S.swing/.3*PI):0;humanWalk(p,mv&&!S.sleep,t,S.ph||0,false);
+ if(!R3.pYaw)R3.pYaw=0;const ty=Math.atan2(S.fx||0,S.fy||1);let dd=ty-R3.pYaw;while(dd>PI)dd-=2*PI;while(dd<-PI)dd+=2*PI;R3.pYaw+=dd*Math.min(1,dt*12);p.rotation.y=S.sleep?0:R3.pYaw;if(S.boat){p.position.set(S.px-Math.sin(R3.pYaw)*15,-1+Math.sin(R3.tNow*2)*1.2,S.py-Math.cos(R3.pYaw)*15)}
+ const mv=S.mv>.1,u=p.userData;sleepPose(p,!!S.sleep);const sh=S.swing>0?Math.sin(S.swing/.3*PI):0;humanWalk(p,mv&&!S.sleep&&!S.boat,t,S.ph||0,false);if(S.boat){u.legL.rotation.x=-1.45;u.legR.rotation.x=-1.45;const pd=mv?Math.sin(t*5)*.7:.15;u.armL.rotation.x=-.5+pd;u.armR.rotation.x=-.5-pd}
  const w=S.tool.ispear?'ispear':S.tool.spear?'spear':S.tool.axe?'axe':S.tool.pick?'pick':'';setTool(p,w);if(sh>0)u.armR.rotation.x=-1.6+sh*1.8;
  const cl=S.tool.iarmor?'#7d8890':S.tool.armor?'#8a5a34':'#e0573d';if(u.cl!==cl){u.cl=cl;u.tor.children[0].material=mat(cl)}
  u.fl.visible=!!S.torchOn;u.lt.intensity=S.torchOn?.9:(S.tool.lantern&&R3.dk>.1?.7:0);if(S.torchOn)u.fl.scale.y=8+Math.sin(t*14)*2;
