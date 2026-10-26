@@ -578,8 +578,11 @@ function sick(p,why){if(Math.random()<p){S.sick=Math.max(S.sick,50);S.cause=why;
 /* ---------- helpers ---------- */
 function bldHit(x,y,r,skip){for(const b of O){if(b===skip||b.dead)continue;if(b.t==='hut'){if(x>b.x0-r-6&&x<b.x1+r+6&&y>b.y0-r-30&&y<b.y1+r+6)return true}else if(BLD[b.t]&&b.t!=='fence'&&Math.hypot(b.x-x,b.y-y)<(b.r||20)+6+r)return true}return false}
 function relocRes(o){const r=o.r||12;for(let i=0;i<60;i++){const a=Math.random()*6.283,d=70+Math.random()*(120+i*8),x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;if(rin(x,y)>.85||blocked(x,y,r+6)||bldHit(x,y,r+8,o))continue;if(O.some(q=>q!==o&&q.r&&!q.dead&&Math.hypot(q.x-x,q.y-y)<q.r+r+4))continue;o.x=x;o.y=y;GVER++;return true}return false}
+let BG=null;
+function bGrid(){if(BG&&BG.o===O&&BG.n===O.length&&BG.v===GVER)return BG;const cs=160,m=new Map();let rm=0;for(const o of O){if(!o.r)continue;if(o.r>rm)rm=o.r;const k=Math.floor(o.x/cs)*4096+Math.floor(o.y/cs);let L=m.get(k);if(!L){L=[];m.set(k,L)}L.push(o)}BG={o:O,n:O.length,v:GVER,cs,m,rm};return BG}
 function blocked(x,y,r,an){if(ADM.noclip&&r===10&&!an)return false;if(S&&S.boat&&r===10&&!an)return rin(x,y)<.9||x<40||y<40||x>WS-40||y>WS-40;if(rin(x,y)>(an?.955:.965))return true;if(inPond(x,y,r))return true;
- for(const o of O){if(o.r&&!o.dead&&Math.abs(o.x-x)<o.r+r&&Math.abs(o.y-y)<o.r+r&&Math.hypot(o.x-x,o.y-y)<o.r+r)return true}
+ {const G=bGrid(),cs=G.cs,m=G.rm+r,x0=Math.floor((x-m)/cs),x1=Math.floor((x+m)/cs),y0=Math.floor((y-m)/cs),y1=Math.floor((y+m)/cs);
+  for(let gx=x0;gx<=x1;gx++)for(let gy=y0;gy<=y1;gy++){const L=G.m.get(gx*4096+gy);if(!L)continue;for(let i=0;i<L.length;i++){const o=L[i];if(!o.dead&&Math.abs(o.x-x)<o.r+r&&Math.abs(o.y-y)<o.r+r&&Math.hypot(o.x-x,o.y-y)<o.r+r)return true}}}
  for(const w of WALLS){const nx=cl(x,w[0],w[2]),ny=cl(y,w[1],w[3]);if(Math.hypot(nx-x,ny-y)<r)return true}return false}
 function bedP(o){return g3()?{x:(o.x0+o.x1)/2,y:o.y1-.55*(o.y1-o.y0)}:{x:o.x0+60,y:o.y0+75}}
 function hutAt(x,y){for(const o of O)if(o.t==='hut'&&x>o.x0+6&&x<o.x1-6&&y>o.y0+4&&y<o.y1-2)return o;return null}
